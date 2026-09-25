@@ -16,6 +16,8 @@ interface ChatCompletion {
 
 export class OpenRouterProvider implements AiProvider {
   readonly name = 'openrouter';
+  /** HTTP requests sent, retries included. */
+  requestCount = 0;
 
   constructor(
     private readonly apiKey: string,
@@ -37,6 +39,7 @@ export class OpenRouterProvider implements AiProvider {
 
     for (let attempt = 1; ; attempt++) {
       let res: Response;
+      this.requestCount++;
       try {
         res = await fetch(`${BASE_URL}/chat/completions`, {
           method: 'POST',

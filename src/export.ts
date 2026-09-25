@@ -1,7 +1,7 @@
 import './env.ts';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getNoticeDetail, listNotices } from './api/notices.ts';
+import { allNoticeIds, getNoticeDetail, listNotices } from './api/notices.ts';
 import { DB_PATH, openDb } from './db.ts';
 
 // Writes the read API's responses as static JSON for hosting without a server
@@ -15,8 +15,9 @@ const notices = listNotices(db);
 
 mkdirSync(join(out, 'api', 'notices'), { recursive: true });
 writeFileSync(join(out, 'api', 'notices.json'), JSON.stringify(notices));
-for (const n of notices) {
-  writeFileSync(join(out, 'api', 'notices', `${n.id}.json`), JSON.stringify(getNoticeDetail(db, n.id)));
+// Every stored copy gets a detail file (a cross-posted copy's file holds its canonical notice).
+for (const id of allNoticeIds(db)) {
+  writeFileSync(join(out, 'api', 'notices', `${id}.json`), JSON.stringify(getNoticeDetail(db, id)));
 }
 
 const analyzed = notices.filter((n) => n.analysis).length;

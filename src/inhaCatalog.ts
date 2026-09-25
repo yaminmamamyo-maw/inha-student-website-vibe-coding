@@ -5,6 +5,8 @@
 
 export interface CollegeEntry {
   college: string;
+  /** Earlier official names; still recognized in notices and in saved profiles. */
+  formerNames?: string[];
   /** Official page, for re-checking the list. */
   url: string;
   majors: MajorEntry[];
@@ -49,11 +51,16 @@ export const INHA_COLLEGES: CollegeEntry[] = [
     majors: [m('자유전공융합학부'), m('공학융합학부'), m('자연과학융합학부'), m('경영융합학부'), m('사회과학융합학부'), m('인문융합학부')],
   },
   {
-    college: '소프트웨어융합대학', url: page(3907),
+    // Renamed from 소프트웨어융합대학 (kr/3907 page title and aicc.inha.ac.kr, checked 2026-09-25).
+    college: 'AI융합대학', formerNames: ['소프트웨어융합대학'], url: page(3907),
     majors: [m('인공지능공학과'), m('데이터사이언스학과'), m('스마트모빌리티공학과'), m('디자인테크놀로지학과'), m('컴퓨터공학과')],
   },
   { college: '간호대학', url: page(4142), majors: [m('간호학과')] },
   { college: '바이오시스템융합학부', url: page(4097), majors: [m('생명공학과'), m('바이오제약공학과'), m('생명과학과'), m('첨단바이오의약학과'), m('바이오식품공학과')] },
 ];
 
-export const collegeOf = (major: string) => INHA_COLLEGES.find((c) => c.majors.some((x) => x.name === major))?.college ?? null;
+/** A former college name (e.g. from a profile saved before a rename) → its current name; others unchanged. */
+export const currentCollegeName = (college: string) =>
+  INHA_COLLEGES.find((c) => c.formerNames?.includes(college))?.college ?? college;
+
+export const collegeOf =(major: string) => INHA_COLLEGES.find((c) => c.majors.some((x) => x.name === major))?.college ?? null;

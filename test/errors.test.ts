@@ -140,6 +140,23 @@ test('openrouter: 401 and error-in-200-body -> AiApiError; truncated -> incomple
   await assert.rejects(p.generateJson(req), (e) => e instanceof AiApiError && /Provider returned error/.test(e.message));
   fetchMock.mock.mockImplementation(orReply(200, { model: 'm', choices: [{ finish_reason: 'length', message: { content: '{"a":' } }] }));
   assert.equal((await p.generateJson(req)).incomplete, true);
+  assert.equal(p.requestCount, 3, 'one HTTP request per call (401/400 are not retried)');
+});
+
+test('anthropic: counts messages.create calls, failed ones included', async () => {
+  const { AnthropicProvider } = await import('../src/ai/anthropic.ts');
+  const p = new AnthropicProvider('k', 'claude-sonnet-5');
+  let fail = false;
+  (p as unknown as { client: { messages: { create: () => Promise<unknown> } } }).client.messages.create = async () => {
+    if (fail) throw new Error('boom');
+    return { content: [{ type: 'text', text: '{}' }], model: 'claude-sonnet-5', stop_reason: 'end_turn' };
+  };
+  const req = { system: '', user: '', jsonSchema: {} };
+  assert.equal(p.requestCount, 0);
+  await p.generateJson(req);
+  fail = true;
+  await assert.rejects(p.generateJson(req), AiApiError);
+  assert.equal(p.requestCount, 2);
 });
 
 // Gemini adapter with `call` stubbed: fallback, cooldown and request counting.

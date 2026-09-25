@@ -1,5 +1,5 @@
 import type { NoticeListItem } from '@shared/api/types.ts';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CategoryFilter, type FilterOption } from '../components/CategoryFilter.tsx';
 import { HeroParticles } from '../components/HeroParticles.tsx';
@@ -14,6 +14,9 @@ import { categoryName } from '../lib/i18n.ts';
 import { useLanguage } from '../lib/language.tsx';
 import { buildHome, UPCOMING_DAYS } from '../lib/personalize.ts';
 import { profileLabel, useProfile } from '../lib/profile.tsx';
+import { matchesSearch } from '../lib/search.ts';
+import { createSearchSync } from '../lib/searchSync.ts';
+import { ALL_SOURCES, boardUnit, canonicalSourceParam, matchesSource, myBoards, resolveSource, sourceOptions } from '../lib/sourceFilter.ts';
 import { scrollToTarget } from '../lib/smoothScroll.ts';
 import './NoticeListPage.css';
 
@@ -41,6 +44,8 @@ export function NoticeListPage() {
   const rawFilter = params.get('category');
   const filter = !rawFilter || rawFilter === '전체' ? ALL : rawFilter; // '전체' = older links
   const sort: Sort = params.get('sort') === 'deadline' ? 'deadline' : 'latest';
+  const query = params.get('q') ?? '';
+  const rawSource = params.get('source');
 
   const update = (key: string, value: string, fallback: string) =>
     setParams((p) => {
@@ -48,6 +53,26 @@ export function NoticeListPage() {
       else p.set(key, value);
       return p;
     }, { replace: true, preventScrollReset: true });
+
+  // Search input: kept as local state so an IME composition (e.g. Korean 한글) isn't broken by
+  // every keystroke round-tripping through the URL. Committed to `q` (and so to `visible` below)
+  // only after composition ends, debounced ~250ms (see createSearchSync); restored from `q` on
+  // load/back-forward. `updateRef` keeps the sync's commit callback pointed at the latest `update`
+  // without recreating the (stateful, debounce-owning) sync object every render.
+  const [searchText, setSearchText] = useState(query);
+  const updateRef = useRef(update);
+  updateRef.current = update;
+  const syncRef = useRef<ReturnType<typeof createSearchSync> | undefined>(undefined);
+  if (!syncRef.current) syncRef.current = createSearchSync((v) => updateRef.current('q', v, ''));
+  const sync = syncRef.current;
+  useEffect(() => () => sync.dispose(), [sync]);
+  useEffect(() => {
+    if (!sync.isComposing()) setSearchText(query);
+  }, [query, sync]);
+  const clearSearch = () => {
+    sync.commitNow('');
+    setSearchText('');
+  };
 
   const notices = state.status === 'ok' ? state.data : [];
   const options = useMemo<FilterOption[]>(() => {
@@ -59,13 +84,41 @@ export function NoticeListPage() {
     ].filter((o) => o.value === ALL || o.count > 0);
   }, [notices, lang, t]);
 
-  const visible = useMemo(() => {
-    const list = filter === ALL ? notices : notices.filter((n) => categoryOf(n) === filter);
-    return sort === 'deadline' ? [...list].sort(byDeadline) : list; // API is already newest first
-  }, [notices, filter, sort]);
-
-  // Personalization only orders/highlights; the "전체 공지" list below uses `notices` unfiltered.
+  // Personalization only orders/highlights; the "전체 공지" list below is filtered only by what the user picks.
   const { profile } = useProfile();
+
+  // Source filter: one button per board (from NOTICE_SOURCES) + "내 학과"/"내 단과대" shortcuts.
+  // A cross-posted notice counts for every board it appears on. See lib/sourceFilter.ts.
+  const sourceSel = useMemo(() => resolveSource(rawSource, profile), [rawSource, profile]);
+  const sourceValue = rawSource ?? ALL_SOURCES;
+  const sourceButtons = useMemo<FilterOption[]>(
+    () =>
+      sourceOptions(notices, profile).map((o) => ({
+        value: o.value,
+        count: o.count,
+        label:
+          o.kind === 'all' ? t.source.all
+          : o.kind === 'shortcut' ? (o.scope === 'major' ? t.source.myMajor : t.source.myCollege)
+          : (boardUnit(o.board) ?? t.source.main),
+      })),
+    [notices, profile, t],
+  );
+  const myMajorBoard = myBoards(profile).major;
+
+  // Old ?source=main|college|department links → the board id (once, replacing the history entry).
+  useEffect(() => {
+    const canonical = canonicalSourceParam(rawSource);
+    if (canonical !== null) update('source', canonical, ALL_SOURCES);
+  }, [rawSource]); // `update` is recreated every render; only a new ?source= value matters
+
+  const visible = useMemo(() => {
+    const list = notices
+      .filter((n) => filter === ALL || categoryOf(n) === filter)
+      .filter((n) => matchesSource(n, sourceSel))
+      .filter((n) => matchesSearch(n, query, lang));
+    return sort === 'deadline' ? [...list].sort(byDeadline) : list; // API is already newest first
+  }, [notices, filter, sourceSel, sort, query, lang]);
+
   const home = useMemo(() => buildHome(notices, profile, todayKst()), [notices, profile]);
 
   const analyzed = notices.filter((n) => n.analysis).length;
@@ -198,14 +251,59 @@ export function NoticeListPage() {
         )}
         {state.status === 'ok' && (
           <>
+            <div className="list__search">
+              <input
+                type="search"
+                className="list__search-input"
+                value={searchText}
+                onChange={(e) => {
+                  setSearchText(e.target.value);
+                  sync.onChange(e.target.value);
+                }}
+                onCompositionStart={() => sync.onCompositionStart()}
+                onCompositionEnd={(e) => {
+                  setSearchText(e.currentTarget.value);
+                  sync.onCompositionEnd(e.currentTarget.value);
+                }}
+                placeholder={t.home.searchPlaceholder}
+                aria-label={t.home.searchLabel}
+              />
+              {searchText && (
+                <button type="button" className="pill" onClick={clearSearch}>
+                  {t.home.searchClear}
+                </button>
+              )}
+            </div>
             <CategoryFilter options={options} value={filter} onChange={(v) => update('category', v, ALL)} label={t.home.filterGroup} />
-            {visible.length === 0 ? (
-              <StateMessage title={t.home.emptyFilter} action={{ label: t.home.showAll, onClick: () => update('category', ALL, ALL) }} />
+            <CategoryFilter options={sourceButtons} value={sourceValue} onChange={(v) => update('source', v, ALL_SOURCES)} label={t.source.group} />
+            {/* no "내 학과" button when that board isn't crawled: say so instead of showing other departments */}
+            {profile && !myMajorBoard && <p className="list__source-note">{t.source.notCollected(profile.major)}</p>}
+            {sourceSel.type === 'uncollected' ? (
+              <StateMessage title={t.source.notCollected(sourceSel.unit)} action={{ label: t.source.showAll, onClick: () => update('source', ALL_SOURCES, ALL_SOURCES) }}>
+                {t.source.notCollectedBody}
+              </StateMessage>
+            ) : visible.length === 0 ? (
+              query ? (
+                <StateMessage title={t.home.emptySearch(query)} action={{ label: t.home.searchClear, onClick: clearSearch }} />
+              ) : (
+                <StateMessage
+                  title={t.home.emptyFilter}
+                  action={{
+                    label: t.home.showAll,
+                    onClick: () =>
+                      setParams((p) => {
+                        p.delete('category');
+                        p.delete('source');
+                        return p;
+                      }, { replace: true, preventScrollReset: true }),
+                  }}
+                />
+              )
             ) : (
               <ul className="list__grid">
                 {visible.map((n) => (
                   <li key={n.id}>
-                    <NoticeCard notice={n} />
+                    <NoticeCard notice={n} query={query} />
                   </li>
                 ))}
               </ul>

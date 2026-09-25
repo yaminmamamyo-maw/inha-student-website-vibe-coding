@@ -3,6 +3,13 @@
 # Data = current local data/poc.db. Re-run after `npm run ingest` to refresh the live site.
 set -euo pipefail
 
+# Git Bash (MSYS) on Windows rewrites arguments and env values that look like POSIX paths,
+# e.g. VITE_BASE="/<repo>/" becomes "C:/Program Files/Git/<repo>/", which breaks every asset
+# URL, the router basename and the static API path. Turn that conversion off.
+# Harmless on macOS/Linux: these variables are only read by MSYS.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL='*'
+
 cd "$(dirname "$0")/.."
 REMOTE_URL=$(git remote get-url origin)
 REPO_NAME=$(basename -s .git "$REMOTE_URL")

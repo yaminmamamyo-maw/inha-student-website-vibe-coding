@@ -44,9 +44,13 @@ function run(db: ReturnType<typeof openDb>, site: ReturnType<typeof fakeSite>, i
   const lines: string[] = [];
   return ingest({
     db, listNotices: async () => listed(...ids), fetchNotice: site.fetchNotice, analyze,
-    log: (l) => lines.push(l), crawlDelayMs: 0,
+    log: (l) => lines.push(l), crawlDelayMs: 0, today: TODAY,
   }).then((stats) => ({ stats, lines }));
 }
+
+// Fixed "today" for the incremental re-check rules. The fake pages' 작성일 (2026-09-22) is then
+// within RECENT_DAYS, so re-runs re-fetch them (edit detection); see the incremental tests below.
+const TODAY = '2026-09-25';
 
 const TEXT = (s: string) => `신청기간 2026.10.16까지 접수합니다. 학부생 대상 안내문 ${s}`;
 
@@ -68,7 +72,7 @@ test('first run inserts + analyzes; second run is idempotent (no duplicates, no 
   assert.deepEqual([second.stats.new, second.stats.unchanged, second.stats.analyzed, aiCalls], [0, 3, 0, 3]);
   assert.deepEqual(counts(db), { notices: 3, analyses: 3, analyzed_current: 3, pending_analysis: 0 });
   assert.deepEqual(db.prepare('SELECT * FROM notice_analysis ORDER BY id').all(), before, 'existing analyses untouched');
-  assert.ok(second.lines.includes('[SKIP] Unchanged notice 2 (existing analysis is current; no Gemini request)'));
+  assert.ok(second.lines.includes('[SKIP] Unchanged notice 2 (existing analysis is current; no AI request)'));
 });
 
 test('ingestion stores the English block from the same analysis call; API serves it', async () => {
@@ -107,7 +111,7 @@ test('--upgrade-prompt re-analyzes only notices whose analysis came from an olde
   const lines: string[] = [];
   const upgraded = await ingest({
     db, listNotices: async () => listed('1', '2'), fetchNotice: site.fetchNotice, analyze,
-    log: (l) => lines.push(l), crawlDelayMs: 0, upgradePrompt: true,
+    log: (l) => lines.push(l), crawlDelayMs: 0, today: TODAY, upgradePrompt: true,
   });
   assert.deepEqual([upgraded.analyzed, upgraded.analysisSkipped, aiCalls], [1, 1, 3]);
   assert.ok(lines.some((l) => l.startsWith('[UPGRADE] Notice 1')));

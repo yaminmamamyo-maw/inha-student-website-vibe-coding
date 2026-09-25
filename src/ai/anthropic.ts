@@ -4,6 +4,8 @@ import type { AiProvider, JsonRequest, JsonResponse } from './provider.ts';
 
 export class AnthropicProvider implements AiProvider {
   readonly name = 'anthropic';
+  /** messages.create() calls made. Retries inside the SDK (default 2) aren't visible here. */
+  requestCount = 0;
   private readonly client: Anthropic;
 
   constructor(
@@ -15,6 +17,7 @@ export class AnthropicProvider implements AiProvider {
 
   async generateJson({ system, user, jsonSchema }: JsonRequest): Promise<JsonResponse> {
     let res;
+    this.requestCount++;
     try {
       res = await this.client.messages.create({
         model: this.model,

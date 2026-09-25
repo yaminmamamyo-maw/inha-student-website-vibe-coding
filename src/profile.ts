@@ -1,6 +1,8 @@
 // Student profile used for personalization. Dependency-free: shared by the web app (stored in
 // localStorage — no accounts yet) and the backend (future: match new notices → notifications).
 
+import { currentCollegeName } from './inhaCatalog.ts';
+
 export const INTERESTS = [
   { id: 'scholarship', label: '장학금', en: 'Scholarships' },
   { id: 'competition', label: '공모전·대회', en: 'Competitions' },
@@ -33,5 +35,5 @@ export function parseProfile(value: unknown): Profile | null {
   if (typeof v.major !== 'string' || !v.major.trim() || typeof v.college !== 'string') return null;
   if (![1, 2, 3, 4].includes(year) || !Number.isInteger(entranceYear) || entranceYear < 2000 || entranceYear > 2100) return null;
   const interests = Array.isArray(v.interests) ? v.interests.filter((i): i is InterestId => typeof i === 'string' && INTEREST_IDS.has(i)) : [];
-  return { college: v.college, major: v.major.trim(), year: year as AcademicYear, entranceYear, interests: [...new Set(interests)] };
+  return { college: currentCollegeName(v.college), major: v.major.trim(), year: year as AcademicYear, entranceYear, interests: [...new Set(interests)] };
 }

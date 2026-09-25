@@ -88,7 +88,7 @@ const ko = {
     statNotices: '공지',
     statAnalyzed: 'AI 분석 완료',
     statClosingSoon: '7일 내 마감',
-    lastChecked: '인하대 공지사항 마지막 확인',
+    lastChecked: '공지 게시판 마지막 확인',
     jumpToAll: '전체 공지 바로 보기',
     forYouTitle: '나에게 맞는 정보',
     forYouNote: (label: string) => `${label} 프로필 기준 추천 · 마감이 지난 공지는 빼고 보여드려요`,
@@ -99,7 +99,7 @@ const ko = {
     viewCalendar: '캘린더 전체 보기',
     allTitle: '전체 공지',
     allTag: 'all',
-    allNote: '프로필과 관계없이 모든 인하대 공지를 보여드려요',
+    allNote: '프로필과 관계없이 본교·단과대·학과의 모든 공지를 보여드려요',
     sortGroup: '정렬',
     sortLatest: '최신순',
     sortDeadline: '마감 임박순',
@@ -110,6 +110,10 @@ const ko = {
     loadErrorBody: (e: string) => `API 서버가 켜져 있는지 확인해 주세요 (${e})`,
     emptyFilter: '해당하는 공지가 없어요',
     showAll: '전체 보기',
+    searchLabel: '공지 검색',
+    searchPlaceholder: '제목, 요약, 대상, 카테고리로 검색',
+    searchClear: '검색어 지우기',
+    emptySearch: (q: string) => `"${q}"에 대한 검색 결과가 없어요`,
   },
   card: {
     aiSummary: 'AI 요약',
@@ -122,6 +126,8 @@ const ko = {
     original: '원문 보기',
     titleOnly: '(제목 기준)',
     koreanOnly: '영어 정보 준비 중',
+    matchSummary: '요약',
+    matchTarget: '대상',
   },
   events: {
     deadline: '신청 마감',
@@ -243,6 +249,18 @@ const ko = {
     loading: '알림을 불러오는 중…',
     loadError: '알림을 불러오지 못했어요',
   },
+  source: {
+    group: '출처 필터',
+    all: '전체 출처',
+    /** Main-board badge/button; college and department boards show their own (Korean) name. */
+    main: '본교',
+    myMajor: '내 학과',
+    myCollege: '내 단과대',
+    notCollected: (unit: string) => `${unit} 게시판은 아직 수집하지 않아요`,
+    notCollectedBody: '다른 학과·단과대 공지를 대신 보여드리지 않아요. 본교 공지나 전체 출처에서 확인해 주세요.',
+    showAll: '전체 출처 보기',
+    viewOriginal: (board: string) => `${board} 원문 공지 ↗`,
+  },
 };
 
 type Dict = typeof ko;
@@ -285,7 +303,7 @@ const en: Dict = {
     statNotices: 'Notices',
     statAnalyzed: 'Analyzed by AI',
     statClosingSoon: 'Closing in 7 days',
-    lastChecked: 'Inha notice board last checked',
+    lastChecked: 'Notice boards last checked',
     jumpToAll: 'Jump to all notices',
     forYouTitle: 'Recommended for You',
     forYouNote: (label: string) => `Based on your profile (${label}) · closed notices are hidden`,
@@ -296,7 +314,7 @@ const en: Dict = {
     viewCalendar: 'Open calendar',
     allTitle: 'All Notices',
     allTag: 'all',
-    allNote: 'Every Inha notice, regardless of your profile',
+    allNote: 'Every notice from the university, college and department boards, regardless of your profile',
     sortGroup: 'Sort',
     sortLatest: 'Newest',
     sortDeadline: 'Closing soon',
@@ -307,6 +325,10 @@ const en: Dict = {
     loadErrorBody: (e: string) => `Please check that the API server is running (${e})`,
     emptyFilter: 'No notices here',
     showAll: 'Show all',
+    searchLabel: 'Search notices',
+    searchPlaceholder: 'Search by title, summary, target, category',
+    searchClear: 'Clear search',
+    emptySearch: (q: string) => `No results for "${q}"`,
   },
   card: {
     aiSummary: 'AI summary',
@@ -319,6 +341,8 @@ const en: Dict = {
     original: 'Original notice',
     titleOnly: '(title only)',
     koreanOnly: 'English not available yet',
+    matchSummary: 'Summary',
+    matchTarget: 'Target',
   },
   events: {
     deadline: 'Deadline',
@@ -439,6 +463,17 @@ const en: Dict = {
     deadline: 'Deadline',
     loading: 'Loading notifications…',
     loadError: 'Could not load notifications',
+  },
+  source: {
+    group: 'Source filter',
+    all: 'All sources',
+    main: 'University',
+    myMajor: 'My department',
+    myCollege: 'My college',
+    notCollected: (unit: string) => `We don't collect the ${unit} board yet`,
+    notCollectedBody: "We won't show other departments' or colleges' notices in its place. Check the university board or all sources.",
+    showAll: 'Show all sources',
+    viewOriginal: (board: string) => `${board} original (Korean) ↗`,
   },
 };
 

@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { AnalysisResult } from './analyze.ts';
+import { DEDUP_WINDOW_DAYS, daysApart, normalizeTitle } from './dedup.ts';
 import { DuplicateNoticeError } from './errors.ts';
 import type { RawNotice } from './types.ts';
 
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS notices (
   content_hash     TEXT NOT NULL,
   crawled_at       TEXT NOT NULL,
   content_updated_at TEXT,
+  dedup_key        TEXT,
+  dup_of           INTEGER REFERENCES notices(id),
   UNIQUE (source, source_notice_id)
 );
 
@@ -84,6 +87,15 @@ function migrate(db: DatabaseSync) {
     // existing analysis was made from the notice's current content.
     db.exec('UPDATE notice_analysis SET content_hash = (SELECT content_hash FROM notices WHERE notices.id = notice_analysis.notice_id)');
   }
+  if (!has('notices', 'dedup_key')) {
+    db.exec('ALTER TABLE notices ADD COLUMN dedup_key TEXT');
+    db.exec('ALTER TABLE notices ADD COLUMN dup_of INTEGER REFERENCES notices(id)');
+    // Rows from before multi-source ingestion are all from one board, so they are all canonical.
+    const rows = db.prepare('SELECT id, title FROM notices').all() as { id: number; title: string }[];
+    const set = db.prepare('UPDATE notices SET dedup_key = ? WHERE id = ?');
+    for (const r of rows) set.run(normalizeTitle(r.title), r.id);
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS notices_dedup_key ON notices (dedup_key)');
 }
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -97,15 +109,19 @@ export function insertNotice(db: DatabaseSync, n: RawNotice): number {
   const result = db
     .prepare(
       `INSERT INTO notices (source, source_notice_id, source_url, title, original_content, raw_html,
-         published_at, board_category, author, attachments_json, content_hash, crawled_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         published_at, board_category, author, attachments_json, content_hash, crawled_at, dedup_key)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (source, source_notice_id) DO NOTHING`,
     )
     .run(
       n.source, n.sourceNoticeId, n.sourceUrl, n.title, n.originalContent, n.rawHtml,
-      n.publishedAt, n.boardCategory, n.author, JSON.stringify(n.attachments), hash, n.crawledAt,
+      n.publishedAt, n.boardCategory, n.author, JSON.stringify(n.attachments), hash, n.crawledAt, normalizeTitle(n.title),
     );
-  if (result.changes === 1) return Number(result.lastInsertRowid);
+  if (result.changes === 1) {
+    const id = Number(result.lastInsertRowid);
+    assignGroup(db, id);
+    return id;
+  }
 
   const existing = db
     .prepare('SELECT id, content_hash FROM notices WHERE source = ? AND source_notice_id = ?')
@@ -138,13 +154,67 @@ export function upsertNotice(db: DatabaseSync, n: RawNotice): { id: number; stat
   }
   db.prepare(
     `UPDATE notices SET source_url = ?, title = ?, original_content = ?, raw_html = ?, published_at = ?,
-       board_category = ?, author = ?, attachments_json = ?, content_hash = ?, crawled_at = ?, content_updated_at = ?
+       board_category = ?, author = ?, attachments_json = ?, content_hash = ?, crawled_at = ?, content_updated_at = ?,
+       dedup_key = ?
      WHERE id = ?`,
   ).run(
     n.sourceUrl, n.title, n.originalContent, n.rawHtml, n.publishedAt, n.boardCategory, n.author,
-    JSON.stringify(n.attachments), hash, n.crawledAt, n.crawledAt, existing.id,
+    JSON.stringify(n.attachments), hash, n.crawledAt, n.crawledAt, normalizeTitle(n.title), existing.id,
   );
+  if (changed.includes('title')) assignGroup(db, existing.id);
   return { id: existing.id, status: 'updated', changed };
+}
+
+// ---------- cross-source duplicates (rule in src/dedup.ts) ----------
+
+/**
+ * Puts a notice into the group of an earlier notice from another board with the same
+ * dedup key and a 작성일 within DEDUP_WINDOW_DAYS, or makes it canonical (dup_of NULL).
+ * A canonical that already has duplicates keeps its role, so groups never split.
+ */
+export function assignGroup(db: DatabaseSync, noticeId: number): void {
+  const me = db.prepare('SELECT id, source, published_at, dedup_key FROM notices WHERE id = ?').get(noticeId) as
+    | { id: number; source: string; published_at: string | null; dedup_key: string | null }
+    | undefined;
+  if (!me) return;
+  if (db.prepare('SELECT 1 FROM notices WHERE dup_of = ? LIMIT 1').get(noticeId)) return;
+  let canonical: number | null = null;
+  if (me.dedup_key) {
+    const candidates = db
+      .prepare('SELECT id, dup_of, published_at FROM notices WHERE dedup_key = ? AND source != ? AND id != ? ORDER BY id')
+      .all(me.dedup_key, me.source, me.id) as { id: number; dup_of: number | null; published_at: string | null }[];
+    const hit = candidates.find((c) => {
+      const d = daysApart(c.published_at, me.published_at);
+      return d !== null && d <= DEDUP_WINDOW_DAYS;
+    });
+    if (hit) canonical = hit.dup_of ?? hit.id;
+  }
+  db.prepare('UPDATE notices SET dup_of = ? WHERE id = ?').run(canonical, noticeId);
+}
+
+/** Canonical id of the notice's group (itself if canonical). */
+export function canonicalId(db: DatabaseSync, noticeId: number): number {
+  const r = db.prepare('SELECT dup_of FROM notices WHERE id = ?').get(noticeId) as { dup_of: number | null } | undefined;
+  return r?.dup_of ?? noticeId;
+}
+
+/** Every notice in the same group as `noticeId`, canonical first. */
+export function groupMembers(db: DatabaseSync, noticeId: number): { id: number; source: string }[] {
+  const root = canonicalId(db, noticeId);
+  return db.prepare('SELECT id, source FROM notices WHERE id = ? OR dup_of = ? ORDER BY dup_of IS NOT NULL, id').all(root, root) as {
+    id: number;
+    source: string;
+  }[];
+}
+
+/**
+ * Group-level version of hasCurrentAnalysis: true if any copy of this notice (on any board) has
+ * an analysis of its own current content. Used by ingest so one notice is analyzed once.
+ * Returns the id of that copy, or null.
+ */
+export function currentGroupAnalysis(db: DatabaseSync, noticeId: number, promptVersion?: string): number | null {
+  for (const m of groupMembers(db, noticeId)) if (hasCurrentAnalysis(db, m.id, promptVersion)) return m.id;
+  return null;
 }
 
 /**
@@ -162,15 +232,58 @@ export function hasCurrentAnalysis(db: DatabaseSync, noticeId: number, promptVer
   );
 }
 
+/**
+ * What incremental ingest needs to decide whether a known post is worth re-fetching: its
+ * 작성일 and the deadline/application-end/event dates of the newest analysis of any copy in its
+ * group (stale or current). Looked up by the canonical article URL, which list rows carry.
+ * null = not stored yet.
+ */
+export function storedNoticeState(db: DatabaseSync, sourceUrl: string): { id: number; publishedAt: string | null; dates: string[] } | null {
+  const row = db.prepare('SELECT id, published_at FROM notices WHERE source_url = ?').get(sourceUrl) as
+    | { id: number; published_at: string | null }
+    | undefined;
+  if (!row) return null;
+  const ids = groupMembers(db, row.id).map((m) => m.id);
+  const a = db
+    .prepare(
+      `SELECT deadline, application_end, event_date FROM notice_analysis
+        WHERE notice_id IN (${ids.map(() => '?').join(',')}) ORDER BY id DESC LIMIT 1`,
+    )
+    .get(...ids) as { deadline: string | null; application_end: string | null; event_date: string | null } | undefined;
+  const dates = a ? [a.deadline, a.application_end, a.event_date].filter((d): d is string => Boolean(d)) : [];
+  return { id: row.id, publishedAt: row.published_at, dates };
+}
+
+/** A stored notice as a RawNotice (for analyzing a known post without re-fetching it). */
+export function storedRawNotice(db: DatabaseSync, noticeId: number): RawNotice | null {
+  const r = getNotice(db, noticeId);
+  if (!r) return null;
+  return {
+    source: String(r.source),
+    sourceNoticeId: String(r.source_notice_id),
+    sourceUrl: String(r.source_url),
+    title: String(r.title),
+    originalContent: String(r.original_content),
+    rawHtml: String(r.raw_html),
+    publishedAt: (r.published_at as string | null) ?? null,
+    boardCategory: (r.board_category as string | null) ?? null,
+    author: (r.author as string | null) ?? null,
+    attachments: JSON.parse(String(r.attachments_json)),
+    crawledAt: String(r.crawled_at),
+  };
+}
+
+/** Per stored notice; a cross-posted copy counts as analyzed when any copy in its group is (see ingest). */
 export function counts(db: DatabaseSync) {
+  const groupAnalyzed = `EXISTS (
+    SELECT 1 FROM notices m JOIN notice_analysis a ON a.notice_id = m.id AND a.content_hash = m.content_hash
+     WHERE coalesce(m.dup_of, m.id) = coalesce(n.dup_of, n.id))`;
   const row = db
     .prepare(
       `SELECT (SELECT count(*) FROM notices) AS notices,
               (SELECT count(*) FROM notice_analysis) AS analyses,
-              (SELECT count(*) FROM notices n WHERE EXISTS (
-                 SELECT 1 FROM notice_analysis a WHERE a.notice_id = n.id AND a.content_hash = n.content_hash)) AS analyzed_current,
-              (SELECT count(*) FROM notices n WHERE NOT EXISTS (
-                 SELECT 1 FROM notice_analysis a WHERE a.notice_id = n.id AND a.content_hash = n.content_hash)) AS pending_analysis`,
+              (SELECT count(*) FROM notices n WHERE ${groupAnalyzed}) AS analyzed_current,
+              (SELECT count(*) FROM notices n WHERE NOT ${groupAnalyzed}) AS pending_analysis`,
     )
     .get() as { notices: number; analyses: number; analyzed_current: number; pending_analysis: number };
   return { ...row };

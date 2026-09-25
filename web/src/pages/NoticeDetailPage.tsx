@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { DdayBadge } from '../components/DdayBadge.tsx';
 import { LanguageToggle } from '../components/LanguageToggle.tsx';
+import { SourceBadges, useBoardLabel } from '../components/SourceBadges.tsx';
 import { deadlineOf } from '../components/NoticeCard.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { api, useApi } from '../lib/api.ts';
@@ -69,6 +70,7 @@ function Detail({ notice, lang }: { notice: NoticeDetail; lang: Lang }) {
   const easy = en?.easyExplanation ?? a?.easyExplanation ?? '';
   const target = en?.target ?? a?.target ?? '';
   const contentLang: Lang = en ? 'en' : 'ko'; // for screen readers / hyphenation
+  const boardLabel = useBoardLabel();
 
   return (
     <>
@@ -81,6 +83,7 @@ function Detail({ notice, lang }: { notice: NoticeDetail; lang: Lang }) {
           ) : (
             <span className="chip chip--pending">{all.common.pending}</span>
           )}
+          <SourceBadges sources={notice.sources} />
           {notice.boardCategory && (
             <span className="detail__board">
               {t.boardCategory} · <span lang="ko">{notice.boardCategory}</span>
@@ -101,10 +104,25 @@ function Detail({ notice, lang }: { notice: NoticeDetail; lang: Lang }) {
         )}
         <p className="detail__meta">
           {t.posted} {notice.publishedAt ? fullDate(notice.publishedAt, lang) : '—'}
-          {notice.author && <> · <span lang="ko">{notice.author}</span></>} ·{' '}
-          <a href={notice.sourceUrl} target="_blank" rel="noreferrer">
-            {t.viewOriginal}
-          </a>
+          {notice.author && <> · <span lang="ko">{notice.author}</span></>}
+          {/* one link per board it was posted on (cross-posted copies are merged into this notice) */}
+          {notice.sources.length > 1 ? (
+            notice.sources.map((s) => (
+              <span key={s.url}>
+                {' · '}
+                <a href={s.url} target="_blank" rel="noreferrer">
+                  {all.source.viewOriginal(boardLabel(s))}
+                </a>
+              </span>
+            ))
+          ) : (
+            <>
+              {' · '}
+              <a href={notice.sourceUrl} target="_blank" rel="noreferrer">
+                {t.viewOriginal}
+              </a>
+            </>
+          )}
         </p>
       </header>
 

@@ -258,6 +258,13 @@
 :root .chip--pending {
   color: var(--ink-muted);
 }
+/* source badges (본교/단과대/학과): same code look, boxed by a hairline so they read apart from the category */
+:root .chip--source {
+  padding: 0 6px;
+  border: 1px solid var(--rule);
+  color: var(--ink-muted);
+  font-size: var(--text-tiny);
+}
 :root .dday {
   border-radius: 0;
   font-weight: 600;

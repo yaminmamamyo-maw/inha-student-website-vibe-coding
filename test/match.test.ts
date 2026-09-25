@@ -8,17 +8,21 @@ import { openDb } from '../src/db.ts';
 import { ingest } from '../src/ingest.ts';
 import { completedSemesters, matchNotice, notificationCandidates } from '../src/match.ts';
 import { parseProfile, type Profile } from '../src/profile.ts';
+import { sourceMeta } from '../src/sourceMeta.ts';
 import { parseNoticeHtml } from '../src/sources/inhaMainNotice.ts';
 import { buildHome } from '../web/src/lib/personalize.ts';
 
 const TODAY = '2026-09-24'; // fall semester: a 1st-year has completed 1 semester
-const cse1: Profile = { college: '소프트웨어융합대학', major: '컴퓨터공학과', year: 1, entranceYear: 2026, interests: [] };
+const cse1: Profile = { college: 'AI융합대학', major: '컴퓨터공학과', year: 1, entranceYear: 2026, interests: [] };
 
 let nextId = 1;
-function notice(target: string | null, opts: { title?: string; category?: string; deadline?: string | null } = {}): NoticeListItem {
+function notice(target: string | null, opts: { title?: string; category?: string; deadline?: string | null; sources?: string[] } = {}): NoticeListItem {
   const id = nextId++;
+  const sources = (opts.sources ?? ['inha-main-notice']).map((source) => ({
+    source, kind: sourceMeta(source).kind, url: '', sourceNoticeId: String(id), publishedAt: '2026-09-20',
+  }));
   return {
-    id, sourceNoticeId: String(id), title: opts.title ?? `공지 ${id}`, sourceUrl: '', publishedAt: '2026-09-20',
+    id, sourceNoticeId: String(id), title: opts.title ?? `공지 ${id}`, sourceUrl: '', sources, publishedAt: '2026-09-20',
     boardCategory: null, crawledAt: '', contentUpdatedAt: null, analysisStatus: target === null ? 'pending' : 'ready',
     analysis: target === null ? null : ({
       category: opts.category ?? '기타', target, deadline: opts.deadline ?? null, applicationEnd: null, applicationStart: null, eventDate: null,
@@ -133,10 +137,38 @@ test('H: no profile → no recommendations, general upcoming dates, all notices 
   assert.deepEqual(home.upcoming.map((e) => e.notice), [a]);
 });
 
+test('I: a notice from the student\'s own department/college board ranks higher (no AI, reason shown)', () => {
+  const me: Profile = { ...cse1, interests: [] };
+  const mech: Profile = { ...cse1, college: '공과대학', major: '기계공학과' };
+  const ds: Profile = { ...cse1, major: '데이터사이언스학과' }; // same college (AI융합대학), other department
+
+  const dept = notice('참가 희망 학생', { sources: ['inha-cse-notice'] });
+  const r = matchNotice(me, dept, TODAY);
+  assert.equal(r.relevanceScore, 35);
+  assert.equal(r.matchLevel, 'medium');
+  assert.deepEqual(r.matchReasons, ['컴퓨터공학과 게시판 공지']);
+  assert.deepEqual(r.matchReasonsEn, ['Posted on the 컴퓨터공학과 board']);
+  assert.equal(matchNotice(mech, dept, TODAY).relevanceScore, 0, 'another college gets no board bonus');
+  assert.deepEqual(matchNotice(ds, dept, TODAY).matchReasons, ['AI융합대학 게시판 공지'], 'dept board counts as own college for a sibling major');
+
+  const college = notice('참가 희망 학생', { sources: ['inha-aicc-notice'] });
+  assert.deepEqual(matchNotice(me, college, TODAY).matchReasons, ['AI융합대학 게시판 공지']);
+  assert.equal(matchNotice(me, college, TODAY).relevanceScore, 20);
+
+  // cross-posted: the department board counts once, the title naming it adds nothing more
+  const both = notice('참가 희망 학생', { title: '[컴퓨터공학과] 설명회', sources: ['inha-main-notice', 'inha-aicc-notice', 'inha-cse-notice'] });
+  assert.deepEqual(matchNotice(me, both, TODAY).matchReasons, ['컴퓨터공학과 게시판 공지']);
+
+  // exclusions still win over the board bonus
+  assert.equal(matchNotice(me, notice('일반대학원 석사과정 대학원생', { sources: ['inha-cse-notice'] }), TODAY).matchLevel, 'none');
+  // the old college name in a notice still means this college
+  assert.deepEqual(matchNotice(me, notice('소프트웨어융합대학 재학생'), TODAY).matchReasons, ['AI융합대학 대상']);
+});
+
 test('profile from storage is validated; bad data is ignored', () => {
   assert.equal(parseProfile(null), null);
   assert.equal(parseProfile({ major: '컴퓨터공학과', college: '소프트웨어융합대학', year: 7, entranceYear: 2026 }), null);
   assert.deepEqual(parseProfile({ major: ' 컴퓨터공학과 ', college: '소프트웨어융합대학', year: '1', entranceYear: 2026, interests: ['scholarship', 'bogus', 'scholarship'] }), {
-    college: '소프트웨어융합대학', major: '컴퓨터공학과', year: 1, entranceYear: 2026, interests: ['scholarship'],
+    college: 'AI융합대학', major: '컴퓨터공학과', year: 1, entranceYear: 2026, interests: ['scholarship'],
   });
 });

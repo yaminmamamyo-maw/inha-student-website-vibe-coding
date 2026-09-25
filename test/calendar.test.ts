@@ -7,7 +7,7 @@ import { noticeEvents } from '../web/src/lib/events.ts';
 
 function notice(id: number, a: Partial<{ deadline: string | null; applicationEnd: string | null; eventDate: string | null }> | null): NoticeListItem {
   return {
-    id, sourceNoticeId: String(id), title: `공지 ${id}`, sourceUrl: '', publishedAt: null, boardCategory: null,
+    id, sourceNoticeId: String(id), title: `공지 ${id}`, sourceUrl: '', sources: [], publishedAt: null, boardCategory: null,
     crawledAt: '', contentUpdatedAt: null, analysisStatus: a ? 'ready' : 'pending',
     analysis: a && ({ deadline: null, applicationEnd: null, eventDate: null, ...a } as any),
   };

@@ -22,6 +22,8 @@
     "web/src/lib/calendar.ts",
     "web/src/lib/events.ts",
     "web/src/lib/personalize.ts",
-    "web/src/lib/dates.ts"
+    "web/src/lib/dates.ts",
+    "web/src/lib/search.ts",
+    "web/src/lib/searchSync.ts"
   ]
 }
