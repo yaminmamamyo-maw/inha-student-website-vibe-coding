@@ -110,6 +110,10 @@ const ko = {
     loadErrorBody: (e: string) => `API 서버가 켜져 있는지 확인해 주세요 (${e})`,
     emptyFilter: '해당하는 공지가 없어요',
     showAll: '전체 보기',
+    searchLabel: '공지 검색',
+    searchPlaceholder: '제목, 요약, 대상, 카테고리로 검색',
+    searchClear: '검색어 지우기',
+    emptySearch: (q: string) => `"${q}"에 대한 검색 결과가 없어요`,
   },
   card: {
     aiSummary: 'AI 요약',
@@ -122,6 +126,8 @@ const ko = {
     original: '원문 보기',
     titleOnly: '(제목 기준)',
     koreanOnly: '영어 정보 준비 중',
+    matchSummary: '요약',
+    matchTarget: '대상',
   },
   events: {
     deadline: '신청 마감',
@@ -307,6 +313,10 @@ const en: Dict = {
     loadErrorBody: (e: string) => `Please check that the API server is running (${e})`,
     emptyFilter: 'No notices here',
     showAll: 'Show all',
+    searchLabel: 'Search notices',
+    searchPlaceholder: 'Search by title, summary, target, category',
+    searchClear: 'Clear search',
+    emptySearch: (q: string) => `No results for "${q}"`,
   },
   card: {
     aiSummary: 'AI summary',
@@ -319,6 +329,8 @@ const en: Dict = {
     original: 'Original notice',
     titleOnly: '(title only)',
     koreanOnly: 'English not available yet',
+    matchSummary: 'Summary',
+    matchTarget: 'Target',
   },
   events: {
     deadline: 'Deadline',

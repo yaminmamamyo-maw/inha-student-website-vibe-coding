@@ -58,6 +58,32 @@ html[lang='ko'] .hero__title {
   letter-spacing: -0.01em;
   color: var(--ink-muted);
 }
+.hero__search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+  margin: 22px 0 0;
+}
+.hero__search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  padding: 8px 2px;
+  font-family: inherit;
+  font-size: var(--text-normal);
+  color: var(--ink);
+}
+.hero__search-input::placeholder {
+  color: var(--ink-muted);
+}
+.hero__search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 @keyframes hero-drift {
   to {
     transform: translateY(-12vh);
@@ -195,9 +221,17 @@ html[lang='ko'] .hero__title {
   .hero__stats dd {
     font-size: 36px;
   }
+  .hero__search {
+    max-width: none;
+  }
   .list__head {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+@media (max-width: 420px) {
+  .hero__search {
+    flex-wrap: wrap;
   }
 }
 @media (max-width: 500px) {

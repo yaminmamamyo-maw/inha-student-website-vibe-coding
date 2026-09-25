@@ -93,6 +93,19 @@
   color: var(--ink);
 }
 
+.card__match-preview {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-small);
+  line-height: 1.65;
+}
+.card mark {
+  background: var(--ink);
+  color: var(--on-dark);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 .card__dates {
   display: flex;
   flex-wrap: wrap;

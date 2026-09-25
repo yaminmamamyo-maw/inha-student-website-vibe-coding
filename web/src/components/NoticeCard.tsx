@@ -5,14 +5,19 @@ import { CATEGORY_TINT } from '../lib/categories.ts';
 import { fullDate, period, shortDate } from '../lib/dates.ts';
 import { categoryName, englishMissing, matchReasons, noticeSummaryLine, noticeTitle } from '../lib/i18n.ts';
 import { useLanguage } from '../lib/language.tsx';
+import { bestSearchMatch, type HighlightPart, highlightTerms, searchTerms } from '../lib/search.ts';
 import { DdayBadge } from './DdayBadge.tsx';
 import './NoticeCard.css';
 
 /** The deadline a student cares about: explicit deadline, else end of the application period. */
 export const deadlineOf = (n: NoticeListItem) => n.analysis?.deadline ?? n.analysis?.applicationEnd ?? null;
 
-/** `match` is only passed in the personalized section; the all-notices grid renders plain cards. */
-export function NoticeCard({ notice, match }: { notice: NoticeListItem; match?: MatchResult }) {
+function Highlighted({ parts }: { parts: HighlightPart[] }) {
+  return <>{parts.map((p, i) => (p.match ? <mark key={i}>{p.text}</mark> : p.text))}</>;
+}
+
+/** `match` is only passed in the personalized section; the all-notices grid renders plain cards. `query` highlights where an active keyword search matched. */
+export function NoticeCard({ notice, match, query }: { notice: NoticeListItem; match?: MatchResult; query?: string }) {
   const { lang, t } = useLanguage();
   const a = notice.analysis;
   const deadline = deadlineOf(notice);
@@ -20,6 +25,8 @@ export function NoticeCard({ notice, match }: { notice: NoticeListItem; match?: 
   // English title/summary come from the stored analysis; without one the Korean text is shown as is.
   const contentLang = lang === 'en' && a?.en ? 'en' : 'ko';
   const reasons = match ? matchReasons(match, lang) : [];
+  const terms = query ? searchTerms(query) : [];
+  const searchMatch = query ? bestSearchMatch(notice, query, lang) : null;
 
   return (
     <article className="card" data-status={notice.analysisStatus}>
@@ -44,7 +51,7 @@ export function NoticeCard({ notice, match }: { notice: NoticeListItem; match?: 
       <h3 className="card__title" lang={contentLang}>
         {/* stretched link: the whole card opens the detail page */}
         <Link to={`/notices/${notice.id}`} className="card__link">
-          {noticeTitle(notice, lang)}
+          {searchMatch?.field === 'title' ? <Highlighted parts={highlightTerms(searchMatch.text, terms)} /> : noticeTitle(notice, lang)}
         </Link>
       </h3>
 
@@ -57,6 +64,13 @@ export function NoticeCard({ notice, match }: { notice: NoticeListItem; match?: 
         </p>
       ) : (
         <p className="card__summary card__summary--pending">{t.card.pendingBody}</p>
+      )}
+
+      {searchMatch && searchMatch.field !== 'title' && (
+        <p className="card__match-preview" lang={contentLang}>
+          <span className="card__ai">{searchMatch.field === 'summary' ? t.card.matchSummary : t.card.matchTarget}: </span>
+          <Highlighted parts={highlightTerms(searchMatch.text, terms)} />
+        </p>
       )}
 
       {a && (applyPeriod || deadline || a.eventDate) && (

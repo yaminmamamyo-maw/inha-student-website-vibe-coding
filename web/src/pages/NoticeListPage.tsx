@@ -1,5 +1,5 @@
 import type { NoticeListItem } from '@shared/api/types.ts';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CategoryFilter, type FilterOption } from '../components/CategoryFilter.tsx';
 import { HeroParticles } from '../components/HeroParticles.tsx';
@@ -14,6 +14,8 @@ import { categoryName } from '../lib/i18n.ts';
 import { useLanguage } from '../lib/language.tsx';
 import { buildHome, UPCOMING_DAYS } from '../lib/personalize.ts';
 import { profileLabel, useProfile } from '../lib/profile.tsx';
+import { matchesSearch } from '../lib/search.ts';
+import { createSearchSync } from '../lib/searchSync.ts';
 import { scrollToTarget } from '../lib/smoothScroll.ts';
 import './NoticeListPage.css';
 
@@ -41,6 +43,7 @@ export function NoticeListPage() {
   const rawFilter = params.get('category');
   const filter = !rawFilter || rawFilter === '전체' ? ALL : rawFilter; // '전체' = older links
   const sort: Sort = params.get('sort') === 'deadline' ? 'deadline' : 'latest';
+  const query = params.get('q') ?? '';
 
   const update = (key: string, value: string, fallback: string) =>
     setParams((p) => {
@@ -48,6 +51,37 @@ export function NoticeListPage() {
       else p.set(key, value);
       return p;
     }, { replace: true, preventScrollReset: true });
+
+  // Search input: kept as local state so an IME composition (e.g. Korean 한글) isn't broken by
+  // every keystroke round-tripping through the URL. Committed to `q` (and so to `visible` below)
+  // only after composition ends, debounced ~250ms (see createSearchSync); restored from `q` on
+  // load/back-forward. `updateRef` keeps the sync's commit callback pointed at the latest `update`
+  // without recreating the (stateful, debounce-owning) sync object every render.
+  const [searchText, setSearchText] = useState(query);
+  const updateRef = useRef(update);
+  updateRef.current = update;
+  const syncRef = useRef<ReturnType<typeof createSearchSync> | undefined>(undefined);
+  if (!syncRef.current) syncRef.current = createSearchSync((v) => updateRef.current('q', v, ''));
+  const sync = syncRef.current;
+  useEffect(() => () => sync.dispose(), [sync]);
+  useEffect(() => {
+    if (!sync.isComposing()) setSearchText(query);
+  }, [query, sync]);
+  const clearSearch = () => {
+    sync.commitNow('');
+    setSearchText('');
+  };
+
+  // Scroll to the results once, when a search starts (query goes from empty to non-empty from user
+  // input) — not on every keystroke while refining an existing query, and not on initial load (e.g.
+  // opening a shared `?q=` link shouldn't yank the page down).
+  const mountedRef = useRef(false);
+  const prevQueryRef = useRef(query);
+  useEffect(() => {
+    if (mountedRef.current && !prevQueryRef.current && query) scrollToTarget('#notices', -72);
+    mountedRef.current = true;
+    prevQueryRef.current = query;
+  }, [query]);
 
   const notices = state.status === 'ok' ? state.data : [];
   const options = useMemo<FilterOption[]>(() => {
@@ -60,9 +94,11 @@ export function NoticeListPage() {
   }, [notices, lang, t]);
 
   const visible = useMemo(() => {
-    const list = filter === ALL ? notices : notices.filter((n) => categoryOf(n) === filter);
+    const list = notices
+      .filter((n) => filter === ALL || categoryOf(n) === filter)
+      .filter((n) => matchesSearch(n, query, lang));
     return sort === 'deadline' ? [...list].sort(byDeadline) : list; // API is already newest first
-  }, [notices, filter, sort]);
+  }, [notices, filter, sort, query, lang]);
 
   // Personalization only orders/highlights; the "전체 공지" list below uses `notices` unfiltered.
   const { profile } = useProfile();
@@ -94,6 +130,31 @@ export function NoticeListPage() {
         <p className="hero__tagline notranslate" translate="no">
           {t.home.tagline}
         </p>
+        {state.status === 'ok' && (
+          <div className="hero__search">
+            <input
+              type="search"
+              className="hero__search-input"
+              value={searchText}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                sync.onChange(e.target.value);
+              }}
+              onCompositionStart={() => sync.onCompositionStart()}
+              onCompositionEnd={(e) => {
+                setSearchText(e.currentTarget.value);
+                sync.onCompositionEnd(e.currentTarget.value);
+              }}
+              placeholder={t.home.searchPlaceholder}
+              aria-label={t.home.searchLabel}
+            />
+            {searchText && (
+              <button type="button" className="pill" onClick={clearSearch}>
+                {t.home.searchClear}
+              </button>
+            )}
+          </div>
+        )}
         <div className="hero__foot">
           {state.status === 'ok' && (
             <dl className="hero__stats">
@@ -200,12 +261,16 @@ export function NoticeListPage() {
           <>
             <CategoryFilter options={options} value={filter} onChange={(v) => update('category', v, ALL)} label={t.home.filterGroup} />
             {visible.length === 0 ? (
-              <StateMessage title={t.home.emptyFilter} action={{ label: t.home.showAll, onClick: () => update('category', ALL, ALL) }} />
+              query ? (
+                <StateMessage title={t.home.emptySearch(query)} action={{ label: t.home.searchClear, onClick: clearSearch }} />
+              ) : (
+                <StateMessage title={t.home.emptyFilter} action={{ label: t.home.showAll, onClick: () => update('category', ALL, ALL) }} />
+              )
             ) : (
               <ul className="list__grid">
                 {visible.map((n) => (
                   <li key={n.id}>
-                    <NoticeCard notice={n} />
+                    <NoticeCard notice={n} query={query} />
                   </li>
                 ))}
               </ul>
