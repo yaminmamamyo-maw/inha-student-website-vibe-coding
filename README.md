@@ -1,6 +1,7 @@
 # Inha Insight (인하 인사이트)
 
-**Live site: https://yaminmamamyo-maw.github.io/inha-student-website-vibe-coding/**
+
+**Live site: https://mugigigng.github.io/inha-student-website-vibe-coding/**
 
 Inha University (인하대학교) notices, read by AI and organized by deadline.
 
