@@ -2,8 +2,8 @@ import type { NoticeListItem } from '@shared/api/types.ts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CategoryFilter, type FilterOption } from '../components/CategoryFilter.tsx';
+import { HeroParticles } from '../components/HeroParticles.tsx';
 import { LanguageToggle } from '../components/LanguageToggle.tsx';
-import { MiniCalendar } from '../components/MiniCalendar.tsx';
 import { deadlineOf, NoticeCard } from '../components/NoticeCard.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { UpcomingList } from '../components/UpcomingList.tsx';
@@ -63,7 +63,6 @@ export function NoticeListPage() {
   // load/back-forward. `updateRef` keeps the sync's commit callback pointed at the latest `update`
   // without recreating the (stateful, debounce-owning) sync object every render.
   const [searchText, setSearchText] = useState(query);
-  const [upcomingOpen, setUpcomingOpen] = useState(true);
   const updateRef = useRef(update);
   updateRef.current = update;
   const syncRef = useRef<ReturnType<typeof createSearchSync> | undefined>(undefined);
@@ -135,29 +134,22 @@ export function NoticeListPage() {
   return (
     <>
       <section className="hero">
+        {/* animated particle network behind the hero only; ends where "Recommended for You" starts */}
+        <HeroParticles />
         <div className="hero__top">
           <p className="hero__eyebrow">{t.home.eyebrow}</p>
           {/* app-wide language switch (lib/language.tsx): changes every page, not just this one */}
           <LanguageToggle />
         </div>
-        <div className="hero__lockup">
-          <div className="hero__lockup-text">
-            {/* translate="no": browser page translation turns "인하" (Inha, a name) into "price
-                reduction"; the app's own 한국어/English toggle provides the English wording.
-                Both languages use the designed wordmark artwork (one file per language). */}
-            <h1 className="hero__title notranslate" translate="no">
-              <img
-                className="hero__wordmark-img"
-                src={`${import.meta.env.BASE_URL}images/inha-insight-wordmark${lang === 'en' ? '-en' : ''}.png`}
-                alt={`${t.home.titleMain} ${t.home.titleAccent}`}
-              />
-            </h1>
-            <p className="hero__tagline notranslate" translate="no">
-              {t.home.tagline}
-            </p>
-          </div>
-          {state.status === 'ok' && <MiniCalendar notices={notices} />}
-        </div>
+        {/* translate="no": browser page translation turns "인하" (Inha, a name) into "price reduction";
+            the app's own 한국어/English toggle provides the English wording */}
+        <h1 className="hero__title notranslate" translate="no">
+          <span>{t.home.titleMain}</span>
+          <em>{t.home.titleAccent}</em>
+        </h1>
+        <p className="hero__tagline notranslate" translate="no">
+          {t.home.tagline}
+        </p>
         <div className="hero__foot">
           {state.status === 'ok' && (
             <dl className="hero__stats">
@@ -176,6 +168,15 @@ export function NoticeListPage() {
             </dl>
           )}
         </div>
+        {/* profile editing lives on /profile (nav); first-time visitors get the setup prompt right above "last checked" */}
+        {!profile && (
+          <div className="hero__setup">
+            <p className="hero__setup-text">{t.home.setupPrompt}</p>
+            <Link to="/profile" className="pill pill--solid">
+              {t.home.setupCta}
+            </Link>
+          </div>
+        )}
         {lastChecked && (
           <p className="hero__checked">
             {t.home.lastChecked} ·{' '}
@@ -185,18 +186,6 @@ export function NoticeListPage() {
         <button type="button" className="hero__cue" onClick={() => scrollToTarget('#notices', -72)}>
           {t.home.jumpToAll} <span aria-hidden>↓</span>
         </button>
-        {/* tinted CTA band: only for first-time visitors (no profile yet) — the one thing left to
-            do, so it's the last thing in the hero and disappears entirely once a profile is set */}
-        {!profile && (
-          <div className="hero__bottom">
-            <div className="hero__setup">
-              <p className="hero__setup-text">{t.home.setupPrompt}</p>
-              <Link to="/profile" className="pill pill--solid">
-                {t.home.setupCta}
-              </Link>
-            </div>
-          </div>
-        )}
       </section>
 
       {state.status === 'ok' && profile && (
@@ -228,27 +217,14 @@ export function NoticeListPage() {
       {state.status === 'ok' && home.upcoming.length > 0 && (
         <section className="soon" aria-labelledby="soon-title">
           <div className="section-head">
-            <div className="section-head__row">
-              <h2 id="soon-title" className="section-head__title">
-                <span aria-hidden>📅</span> {t.home.upcomingTitle}
-              </h2>
-              <button
-                type="button"
-                className="section-head__toggle"
-                aria-expanded={upcomingOpen}
-                onClick={() => setUpcomingOpen((v) => !v)}
-              >
-                <span className="section-head__chevron" aria-hidden>
-                  ▾
-                </span>
-                {upcomingOpen ? t.home.collapseUpcoming : t.home.expandUpcoming}
-              </button>
-            </div>
+            <h2 id="soon-title" className="section-head__title">
+              <span aria-hidden>📅</span> {t.home.upcomingTitle}
+            </h2>
             <p className="section-head__note">
               {t.home.upcomingNote(UPCOMING_DAYS, !!profile)} · <Link to="/calendar">{t.home.viewCalendar}</Link>
             </p>
           </div>
-          {upcomingOpen && <UpcomingList events={home.upcoming} />}
+          <UpcomingList events={home.upcoming} />
         </section>
       )}
 

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { categoryCssVar } from '../lib/categories.ts';
 import { shortDate } from '../lib/dates.ts';
 import type { NoticeEvent } from '../lib/events.ts';
 import { noticeTitle } from '../lib/i18n.ts';
@@ -16,9 +15,7 @@ export function UpcomingList({ events }: { events: NoticeEvent[] }) {
         <li key={`${e.notice.id}-${e.kind}`}>
           <Link to={`/calendar?date=${e.date.slice(0, 10)}&month=${e.date.slice(0, 7)}&notice=${e.notice.id}`} className="upcoming__row">
             <span className="upcoming__date">{shortDate(e.date, lang)}</span>
-            <span className={`ev ev--${e.kind} ev--sample`} style={categoryCssVar(e.notice)}>
-              {t.events[e.kind]}
-            </span>
+            <span className={`ev ev--${e.kind} ev--sample`}>{t.events[e.kind]}</span>
             <span className="upcoming__title">{noticeTitle(e.notice, lang)}</span>
             {e.kind === 'deadline' ? <DdayBadge deadline={e.date} /> : <span />}
           </Link>

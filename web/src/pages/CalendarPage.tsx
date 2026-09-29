@@ -4,7 +4,6 @@ import { DdayBadge } from '../components/DdayBadge.tsx';
 import { StateMessage } from '../components/StateMessage.tsx';
 import { api, useApi } from '../lib/api.ts';
 import { eventsByDay, monthCells, nextEventAfter, shiftMonth } from '../lib/calendar.ts';
-import { categoryCssVar } from '../lib/categories.ts';
 import { shortDate, todayKst } from '../lib/dates.ts';
 import { noticeEvents, type NoticeEvent } from '../lib/events.ts';
 import { downloadCsvBulk, downloadIcsMulti } from '../lib/ics.ts';
@@ -266,7 +265,6 @@ export function CalendarPage() {
                                 to={`/notices/${e.notice.id}`}
                                 state={{ from }}
                                 className={`ev ev--${e.kind}${isSaved(e.notice.id) ? ' ev--saved' : ''}${highlight === e.notice.id ? ' ev--highlight' : ''}`}
-                                style={categoryCssVar(e.notice)}
                                 data-prefix={`${isSaved(e.notice.id) ? '★ ' : ''}${all.events.short[e.kind]}`}
                                 title={`[${all.events[e.kind]}] ${noticeTitle(e.notice, lang)}`}
                               >
@@ -287,11 +285,7 @@ export function CalendarPage() {
                           e.kind === 'imported' ? (
                             <i key={`imp-${e.imported.uid}`} className="dot dot--imported" />
                           ) : (
-                            <i
-                              key={`${e.notice.id}-${e.kind}`}
-                              className={`dot dot--${e.kind}${highlight === e.notice.id ? ' dot--highlight' : ''}`}
-                              style={categoryCssVar(e.notice)}
-                            />
+                            <i key={`${e.notice.id}-${e.kind}`} className={`dot dot--${e.kind}${highlight === e.notice.id ? ' dot--highlight' : ''}`} />
                           ),
                         )}
                       </span>
@@ -347,9 +341,7 @@ export function CalendarPage() {
                         onClick={() => navigate(`/notices/${e.notice.id}`, { state: { from } })}
                       >
                         <span className="agenda__date">{shortDate(e.date, lang)}</span>
-                        <span className={`ev ev--${e.kind} ev--sample`} style={categoryCssVar(e.notice)}>
-                          {all.events[e.kind]}
-                        </span>
+                        <span className={`ev ev--${e.kind} ev--sample`}>{all.events[e.kind]}</span>
                         <span className="agenda__name">
                           {isSaved(e.notice.id) && (
                             <span className="agenda__saved" title={t.savedMark} aria-label={t.savedMark}>

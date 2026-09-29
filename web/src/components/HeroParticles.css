@@ -1,0 +1,14 @@
+/* Background layer of the home hero: fills the hero only, never catches clicks. */
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+/* hero content sits above the canvas */
+.hero > :not(.hero-particles) {
+  position: relative;
+  z-index: 1;
+}

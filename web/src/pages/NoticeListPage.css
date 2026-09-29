@@ -58,23 +58,6 @@ html[lang='ko'] .hero__title {
   letter-spacing: -0.01em;
   color: var(--ink-muted);
 }
-/* wordmark + tagline on the left, the mini calendar strip on the right (stacks on narrow screens) */
-.hero__lockup {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px 40px;
-}
-.hero__lockup-text {
-  flex: 1 1 320px;
-  min-width: 0;
-}
-@media (max-width: 900px) {
-  .hero__lockup {
-    flex-direction: column;
-  }
-}
 @keyframes hero-drift {
   to {
     transform: translateY(-12vh);
@@ -272,41 +255,10 @@ html[lang='ko'] .hero__title {
 .section-head {
   margin-bottom: 18px;
 }
-.section-head__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
 .section-head__title {
   margin: 0;
   font-size: var(--text-display);
   font-weight: 600;
-}
-.section-head__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  padding: 4px 10px;
-  border: 1px solid var(--rule);
-  border-radius: var(--pill);
-  background: none;
-  font-size: var(--text-small);
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
-}
-.section-head__toggle:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.section-head__chevron {
-  display: inline-block;
-  transition: transform 0.2s;
-}
-.section-head__toggle[aria-expanded='false'] .section-head__chevron {
-  transform: rotate(-90deg);
 }
 .section-head__note {
   margin: 4px 0 0;

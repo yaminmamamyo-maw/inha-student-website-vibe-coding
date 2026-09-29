@@ -1,47 +1,50 @@
 /*
- * Design tokens — Inha Insight, "campus portal" identity:
- * Inha navy (#003876) as the primary brand color, a warm gold accent, a soft blue-grey page
- * against crisp white cards, and one distinct, accessible color per notice category so sections
- * are told apart at a glance. Site-wide styling on top of the components is in theme.css.
+ * Design tokens — Inha Insight, inspired by duten.com (brushed stainless steel):
+ * light grey page, near-black ink, cool greys, #C6C6C6 hairlines, one grotesque family,
+ * black pills, brushed-steel wordmark. Monochrome; red only for urgent deadlines.
+ * Site-wide styling on top of the components is in theme.css.
  */
 :root {
   /* color */
-  --ink: #1b2733;              /* body text: near-navy-black, softer than pure black */
-  --ink-muted: #5b6b7c;        /* secondary text: slate blue-grey */
-  --paper: #eef3f9;            /* page background: soft blue-grey */
-  --paper-raised: #ffffff;     /* cards: crisp white against the tinted page */
-  --card: #f7fafd;             /* card hover background */
-  --mint: #e7f0fb;             /* soft highlight wash: "for you" band, easy-explain box, relevant notif */
-  --lavender: #1d4ed8;         /* category tint: 학사 (academic affairs) */
-  --sand: #003876;             /* text selection background: Inha navy */
-  --accent: #003876;           /* Inha navy — links, hover, active state */
-  --hero: #0f5aa8;             /* lighter navy — event outline, hero accents, particle "near" color */
-  --gold: #f2a900;             /* warm accent for small highlights (brand wordmark, badges) */
-  --urgent: #dc2626;           /* deadline today / tomorrow */
-  --black: #003876;            /* "active" pill fill: navy instead of black */
-  --rule: #c9d4e0;             /* hairlines: blue-grey */
-  --rule-soft: #dce4ee;        /* hairlines inside lists/cards */
+  --ink: #161615;
+  --ink-muted: #707070;
+  --paper: #ededed;            /* page background */
+  --paper-raised: #f4f4f4;     /* cards */
+  --card: #f4f4f4;
+  --mint: #e4e4e4;             /* secondary band / chip */
+  --lavender: #e0e0e0;         /* tertiary band / chip */
+  --sand: #161615;             /* selection: black */
+  --accent: #000;              /* hover + "open" state */
+  --hero: #80878e;
+  --urgent: #ff5252;           /* deadline today / tomorrow */
+  --black: #161615;            /* active pill fill */
+  --rule: #c6c6c6;             /* hairlines */
+  --rule-soft: #d6d6d6;        /* hairlines inside lists/cards */
   --surface: transparent;      /* pills, inputs, toggles */
   --on-dark: #fff;             /* text on dark/urgent fills */
-  --hover-wash: rgba(0, 56, 118, 0.05);
-  --band-soft: #f7fafd;
-  --cell-out: #eef2f7;         /* calendar days outside the month */
-  --today-wash: rgba(0, 56, 118, 0.06);
-  --nav-fade: rgba(238, 243, 249, 0);
-  --grey-code: #64748b;        /* meta labels: eyebrows, D-day headers */
-  --grey-text: #5b6b7c;        /* secondary text (hero tagline, notes) */
-
-  /* category chip tints — one accessible, distinct hue per category (white text on all of them) */
-  --cat-scholarship: #b45309;  /* 장학금: amber */
-  --cat-recruit: #6d28d9;      /* 모집/선발: violet */
-  --tint-event: #0f766e;       /* 행사/특강: teal */
-  --tint-career: #c2410c;      /* 취업/진로: orange */
-  --tint-intl: #0e7490;        /* 국제교류: cyan */
-  --tint-life: #be123c;        /* 시설/생활: rose */
-  --cat-other: #374151;        /* 기타: dark neutral slate (card chip stays plain outline; calendar needs a real fill) */
+  --hover-wash: rgba(0, 0, 0, 0.03);
+  --band-soft: #f4f4f4;
+  --cell-out: #e6e6e6;         /* calendar days outside the month */
+  --today-wash: rgba(0, 0, 0, 0.04);
+  --nav-fade: rgba(237, 237, 237, 0);
+  --grey-code: #919191;        /* product-code greys: chips, labels */
+  --grey-text: #80878e;        /* secondary text */
+  /* category chip tints */
+  --tint-event: #dedede;
+  --tint-career: #e2e2e2;
+  --tint-intl: #d9dbdd;
+  --tint-life: #e6e6e6;
 
   /* surfaces */
-  /* hairline frame crossed by a diagonal (kept for any leftover product-tile styling) */
+  /* mid-graphite brushed steel: softer than black, still ≥3:1 on #EDEDED for large display text */
+  --steel:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 3px),
+    linear-gradient(100deg, #55595e 0%, #7a7e83 28%, #5c6065 46%, #868a8f 64%, #62666b 82%, #55595e 100%);
+  /* lighter steel for the second word (like the grey "Insight" in the nav logo) */
+  --steel-light:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 3px),
+    linear-gradient(100deg, #7d8186 0%, #9ea2a6 30%, #83878c 50%, #a5a9ad 70%, #868a8f 100%);
+  /* hairline frame crossed by a diagonal (duten product tile) */
   --diagonal: linear-gradient(to top right, transparent calc(50% - 0.5px), var(--rule) 50%, transparent calc(50% + 0.5px));
 
   /* type */

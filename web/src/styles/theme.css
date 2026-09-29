@@ -1,12 +1,12 @@
 /*
- * Inha Insight design — "campus portal" identity.
- * Site-wide look on top of the component styles; tokens (colours, fonts) are in tokens.css.
+ * Inha Insight design — inspired by duten.com (finish: brushed stainless steel).
+ * Site-wide look on top of the component styles; tokens (colours, fonts, steel) are in tokens.css.
  * Selectors are prefixed with :root so they keep the specificity they need to override components.
  *
- * Traits: Inha navy (#003876) as the one accent color, white cards on a soft blue-grey page, a
- * persistent navy nav bar (not a floating overlay), a left-aligned dashboard hero with a soft
- * navy gradient at the top, and — the main fix for "everything looks the same" — a distinct,
- * solid color per notice category, shown both as a colored chip and as a left bar on its card.
+ * Traits: light grey page, near-black ink, cool greys, #C6C6C6 hairlines, Inter Tight (for duten's
+ * Maison Neue) at 500/600, a huge centred brushed-steel wordmark with a thin rule under it, product
+ * tiles as hairline frames crossed by a diagonal, grey tracked product codes, black outline / black
+ * filled pills, black selection. Monochrome: red only for urgent deadlines.
  */
 /* ---------- type ---------- */
 :root body {
@@ -14,61 +14,91 @@
   letter-spacing: -0.005em;
 }
 :root *::selection {
-  background: var(--sand);
+  background: #161615;
   color: #fff;
 }
 :root body * {
-  font-style: normal; /* clean, businesslike labels — no italics, like an official portal */
+  font-style: normal; /* beats the component italics */
 }
 
-/* ---------- hero: left-aligned dashboard header, not a centred wordmark ---------- */
-/* white "banner" zone for the wordmark/tagline/mini-calendar/stats/last-checked; .hero__bottom
-   (the profile setup prompt) is the only thing that bleeds out to the page's own tinted
-   background — a CTA band that shows for first-time visitors and disappears once they have a
-   profile, rather than a fixed zone. */
+/* hero: the centred steel wordmark */
 :root .hero {
-  background: var(--paper-raised);
+  align-items: center;
+  text-align: center;
+  border-bottom: 0;
+  padding-top: 96px;
 }
-:root .hero__bottom {
-  margin: 32px calc(-1 * var(--gutter)) -32px;
-  padding: 20px var(--gutter) 32px;
-  background: var(--paper);
+/* eyebrow left, language switch right (not centred), like the other themes */
+:root .hero__top {
+  width: 100%;
+  margin-bottom: 28px;
 }
-/* wordmark: both languages show the designed artwork as an image, one file per language
-   (NoticeListPage.tsx picks the file; no styled text lockup needed here any more). */
-:root .hero__wordmark-img {
+:root .hero__title {
+  align-items: center;
+  font-weight: 600;
+  font-size: clamp(76px, 15vw, 240px);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  background: var(--steel);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8));
+}
+:root .hero__title em {
+  padding-left: 0;
+  font-weight: 600;
+  background: var(--steel-light);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+:root .hero__title::after {
+  content: '';
   display: block;
-  align-self: flex-start; /* .hero__title is a column flex container (stretch by default), which
-                              would otherwise force this to full width and distort its aspect ratio */
-  height: clamp(84px, 15vw, 220px);
-  width: auto;
+  width: min(560px, 60vw);
+  height: 1px;
+  margin: 28px auto 0;
+  background: var(--grey-text);
 }
+/* tagline right under the steel wordmark's rule, centred like the duten description */
 :root .hero__tagline {
+  margin-top: 20px;
   color: var(--grey-text);
+  text-align: center;
 }
+/* one centred column: title → rule → tagline → stats → setup tile → last checked */
+:root .hero__foot {
+  width: 100%;
+  justify-content: center;
+}
+:root .hero__stats {
+  gap: 56px;
+}
+:root .hero__stats div {
+  text-align: center;
+}
+/* setup prompt as a duten hairline tile, same width as the rule under the wordmark */
 :root .hero__setup {
-  margin: 0;
-  padding: 0;
-  border-block: 0; /* .hero__bottom's own background is the band now; no need for a box-in-a-box */
-  background: none;
+  width: min(560px, 100%);
+  margin: 32px auto 0;
+  background: var(--paper); /* solid, so the particle lines don't run through the text */
 }
 :root .hero__setup-text {
-  color: var(--ink);
+  color: var(--grey-text);
 }
 :root .hero__eyebrow,
 :root .cal__eyebrow,
 :root .profile__eyebrow,
 :root .notif__eyebrow {
   font-size: var(--text-small);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.055em;
   text-transform: uppercase;
-  color: var(--hero);
+  color: var(--grey-code);
 }
 :root .hero__stats dd {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: -0.04em;
 }
 :root .hero__stats dt,
 :root .card__ai,
@@ -88,7 +118,7 @@
   color: var(--grey-text);
 }
 
-/* headings: one family, tight, semibold, navy for the biggest ones */
+/* headings: one family, tight, semibold */
 :root .section-head__title,
 :root .list__title,
 :root .agenda__title,
@@ -96,224 +126,159 @@
 :root .notif__title,
 :root .detail__title,
 :root .card__title {
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 :root .section-head__title,
 :root .list__title {
   font-size: calc(var(--text-display) + 8px);
-  color: var(--accent);
 }
 :root .list__title em {
   color: var(--grey-code);
   font-weight: 500;
 }
 :root .cal__title {
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  color: #161615;
 }
 :root .cal__title em {
   color: var(--grey-code);
 }
 :root .detail__h2 {
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--text-small);
   letter-spacing: 0.055em;
   text-transform: uppercase;
-  color: var(--hero);
+  color: var(--grey-code);
 }
 
-/* ---------- buttons: navy outline / navy fill pills ---------- */
+/* ---------- buttons: duten's outline / black pills ---------- */
 :root .pill {
   padding: 5px 16px;
-  border: 1px solid var(--accent);
+  border: 1px solid #161615;
   background: transparent;
-  color: var(--accent);
+  color: #161615;
   font-weight: 500;
   font-size: var(--text-small);
   transition: background-color 0.2s, color 0.2s;
 }
 :root .pill:hover {
   color: #fff;
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #161615;
+  border-color: #161615;
 }
 :root .pill[aria-current='page'],
 :root .pill[aria-pressed='true'],
 :root .pill--solid {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #161615;
+  border-color: #161615;
   color: #fff;
-  font-weight: 600;
+  font-weight: 500;
 }
 :root .pill--solid:hover {
-  background: #002855;
-  border-color: #002855;
+  background: #000;
 }
 :root .lang {
-  border-color: var(--accent);
+  border-color: #161615;
   background: transparent;
 }
 :root .lang__btn[aria-pressed='true'] {
-  background: var(--accent);
+  background: #161615;
   color: #fff;
 }
 
-/* ---------- nav: persistent solid navy bar (portal chrome), not a floating overlay ---------- */
-:root .nav {
-  position: fixed;
-  background: var(--accent);
-  padding: 12px var(--gutter);
-  box-shadow: 0 1px 4px rgba(0, 20, 46, 0.18);
-}
-:root .nav::before {
-  content: none; /* the bar is opaque now: no fade-under-pills gradient needed */
-}
+/* ---------- nav: bare, like duten's header ---------- */
 :root .nav__brand {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 20px;
-  letter-spacing: -0.02em;
-  color: #fff;
+  letter-spacing: -0.03em;
 }
 :root .nav__brand em {
-  color: var(--gold);
-  font-weight: 500;
-}
-:root .nav nav {
-  position: static;
+  color: var(--grey-code);
 }
 :root .nav nav .pill {
-  border-color: rgba(255, 255, 255, 0.45);
-  color: #fff;
+  border-color: transparent;
 }
 :root .nav nav .pill:hover,
 :root .nav nav .pill[aria-current='page'] {
-  background: #fff;
-  border-color: #fff;
-  color: var(--accent);
+  border-color: #161615;
 }
 
-/* ---------- cards: white tile, soft border, left color bar per category ---------- */
+/* ---------- product-tile cards: hairline frame + diagonal ---------- */
 :root .card {
   border: 1px solid var(--rule);
-  border-left: 4px solid var(--rule); /* recolored per category below */
-  background: var(--paper-raised);
-  box-shadow: 0 1px 3px rgba(0, 40, 85, 0.06);
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s var(--ease), background-color 0.25s;
+  background: var(--diagonal), transparent;
+  transition: border-color 0.3s, background-color 0.3s;
 }
 :root .card:hover,
 :root .card:focus-within {
-  transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 20px rgba(0, 40, 85, 0.12);
-  background: var(--card);
+  transform: none;
+  border-color: #161615;
+  background: var(--diagonal), rgba(255, 255, 255, 0.55);
 }
 :root .card__title {
-  color: var(--ink);
+  color: #161615;
 }
 :root .card:hover .card__title {
-  color: var(--accent);
+  color: #000;
 }
 :root .card__summary {
   color: var(--grey-text);
 }
 :root .card__match {
-  color: var(--accent);
-  font-weight: 700;
+  color: #161615;
+  font-weight: 600;
 }
 :root .detail__aside,
 :root .state {
   border: 1px solid var(--rule);
-  background: var(--paper-raised);
+  background: transparent;
 }
 :root .foryou {
-  border-top: 2px solid var(--accent);
+  border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  background: var(--mint);
+  background: #e6e6e6;
 }
 :root .detail__easy {
-  border-left: 4px solid var(--accent);
-  background: var(--mint);
+  border: 1px solid var(--rule);
+  background: #f4f4f4;
 }
 
-/* category chips: a solid, distinct color per category (inline background from CATEGORY_TINT),
-   white text on all of them; category-less states (기타/분석 대기/source badges) stay a neutral outline */
+/* category chips read like product codes: grey, tracked, no fill */
 :root .chip {
-  padding: 2px 12px;
-  border: 1px solid var(--rule);
-  border-radius: var(--pill);
+  padding: 0;
+  border: 0;
+  background: transparent !important; /* overrides the inline category tint */
   color: var(--grey-code);
   font-weight: 600;
-  font-size: var(--text-tiny);
-  letter-spacing: 0.02em;
-}
-:root .chip[style]:not([style*='transparent']) {
-  border-color: transparent;
-  color: #fff;
-  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
 }
 :root .chip--pending {
   color: var(--ink-muted);
 }
+/* source badges (본교/단과대/학과): same code look, boxed by a hairline so they read apart from the category */
 :root .chip--source {
-  padding: 1px 8px;
+  padding: 0 6px;
   border: 1px solid var(--rule);
-  background: transparent !important;
   color: var(--ink-muted);
   font-size: var(--text-tiny);
-  font-weight: 500;
 }
 :root .dday {
-  border-radius: var(--pill);
-  font-weight: 700;
+  border-radius: 0;
+  font-weight: 600;
 }
 :root .dday--open {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: #161615;
+  border-color: #161615;
 }
 
-/* the left bar: matches each category's chip color (same inline CSS var, read off the chip) */
-:root .card:has(.chip[style*='cat-scholarship']) {
-  border-left-color: var(--cat-scholarship);
-}
-:root .card:has(.chip[style*='lavender']) {
-  border-left-color: var(--lavender);
-}
-:root .card:has(.chip[style*='cat-recruit']) {
-  border-left-color: var(--cat-recruit);
-}
-:root .card:has(.chip[style*='tint-event']) {
-  border-left-color: var(--tint-event);
-}
-:root .card:has(.chip[style*='tint-career']) {
-  border-left-color: var(--tint-career);
-}
-:root .card:has(.chip[style*='tint-intl']) {
-  border-left-color: var(--tint-intl);
-}
-:root .card:has(.chip[style*='tint-life']) {
-  border-left-color: var(--tint-life);
-}
-
-/* notices past their deadline (DdayBadge renders .dday--closed): faded + dashed, so a closed
-   notice never reads the same as an open one, but its category bar stays solid and identifiable */
-:root .card:has(.dday--closed) {
-  opacity: 0.4;
-  border-top-style: dashed;
-  border-right-style: dashed;
-  border-bottom-style: dashed;
-}
-:root .card:has(.dday--closed):hover,
-:root .card:has(.dday--closed):focus-within {
-  opacity: 1;
-}
-
-/* summary numbers */
+/* summary numbers: grey product-code numerals */
 :root .detail__summary li::before {
-  font-weight: 700;
-  color: var(--hero);
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: var(--grey-code);
+  letter-spacing: 0.055em;
 }
 
 /* ---------- calendar ---------- */
@@ -325,53 +290,55 @@
   border-color: var(--rule);
 }
 :root .grid__cell {
-  background: var(--paper-raised);
+  background: transparent;
 }
 :root .grid__wd--sun {
   color: var(--urgent);
 }
 :root .ev {
-  border-radius: 4px;
-}
-/* deadline/event chips pick up the notice's own category color (--cat, set inline by CalendarPage)
-   so the calendar reads with the same colors as the notice cards; --cat is unset for the legend
-   swatches and imported events, which fall back to plain navy. */
-:root .ev--deadline {
-  background: var(--cat, var(--accent));
-  border-color: var(--cat, var(--accent));
+  border-radius: 0;
 }
 :root .ev--event {
   background: transparent;
-  border-color: var(--cat, var(--hero));
-  color: var(--cat, var(--hero));
+  border-color: #161615;
+  color: #161615;
 }
 :root .grid__cell--today .grid__day {
-  background: var(--accent);
+  background: #161615;
   color: #fff;
 }
 
 /* ---------- forms ---------- */
 :root .field select {
   border: 1px solid var(--rule);
-  background-color: #fff;
+  background-color: transparent;
 }
 :root .field select:focus {
-  border-color: var(--accent);
+  border-color: #161615;
 }
 
 /* ---------- misc ---------- */
 :root .scroll-progress {
-  height: 3px;
-  background: var(--accent);
+  height: 1px;
+  background: #161615;
 }
 :root .notif__item--relevant {
-  background: var(--mint);
+  background: rgba(255, 255, 255, 0.5);
 }
 :root .site-foot {
   border-top-color: var(--rule);
 }
 
 @media (max-width: 760px) {
+  :root .nav nav {
+    justify-content: center;
+  }
+  :root .hero__foot {
+    align-items: center;
+  }
+  :root .hero__stats {
+    gap: 28px;
+  }
   :root .hero {
     min-height: 0;
     padding-top: 84px;
